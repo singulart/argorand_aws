@@ -1,0 +1,4 @@
+iac/terraform.tfstate*
+iac/.terraform*
+iac/*.zip
+.DS_Store
