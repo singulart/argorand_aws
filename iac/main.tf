@@ -10,6 +10,8 @@ provider "aws" {
   }
 }
 
+data "aws_caller_identity" "current" {}
+
 # Retrieve an existing verified domain identity
 data "aws_ses_domain_identity" "argorand" {
   domain = "argorand.io"
@@ -69,8 +71,6 @@ resource "aws_sns_topic_policy" "allow_ses_publish" {
   })
 }
 
-data "aws_caller_identity" "current" {}
-
 # Attach an event destination to the configuration set
 resource "aws_sesv2_configuration_set_event_destination" "sns_destination" {
   configuration_set_name = aws_sesv2_configuration_set.main.configuration_set_name
@@ -86,3 +86,40 @@ resource "aws_sesv2_configuration_set_event_destination" "sns_destination" {
   }
 }
 
+# Create SQS queue
+resource "aws_sqs_queue" "ses_events_queue" {
+  name = "ses-argorand-events-queue"
+}
+
+# Allow SNS topic to send messages to SQS
+resource "aws_sqs_queue_policy" "ses_events_queue_policy" {
+  queue_url = aws_sqs_queue.ses_events_queue.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "Allow-SNS-SendMessage"
+        Effect    = "Allow"
+        Principal = {
+          Service = "sns.amazonaws.com"
+        }
+        Action    = "sqs:SendMessage"
+        Resource  = aws_sqs_queue.ses_events_queue.arn
+        Condition = {
+          ArnEquals = {
+            "aws:SourceArn" = aws_sns_topic.ses_events.arn
+          }
+        }
+      }
+    ]
+  })
+}
+
+# Subscribe SQS queue to SNS topic
+resource "aws_sns_topic_subscription" "ses_events_subscription" {
+  topic_arn = aws_sns_topic.ses_events.arn
+  protocol  = "sqs"
+  endpoint  = aws_sqs_queue.ses_events_queue.arn
+  raw_message_delivery = true
+}

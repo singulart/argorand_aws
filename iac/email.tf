@@ -145,7 +145,7 @@ resource "aws_lambda_function" "email_loader" {
 }
 
 resource "aws_cloudwatch_log_group" "email_loader_lambda_logs" {
-  name              = "/aws/lambda/email/loader_lambda"
+  name              = "/aws/lambda/loader_lambda"
   retention_in_days = 14
 }
 
@@ -187,7 +187,7 @@ resource "aws_iam_policy" "email_loader_lambda_permissions" {
           "logs:PutLogEvents"
         ],
         Effect   = "Allow",
-        Resource = "arn:aws:logs:${local.region}:*:log-group:/aws/lambda/email/loader_lambda:*"
+        Resource = "arn:aws:logs:${local.region}:*:log-group:/aws/lambda/loader_lambda:*"
       }
     ]
   })
@@ -228,7 +228,7 @@ resource "aws_lambda_function" "cold_email_sender" {
 }
 
 resource "aws_cloudwatch_log_group" "cold_email_sender_logs" {
-  name              = "/aws/lambda/email/cold_email_sender"
+  name              = "/aws/lambda/cold_email_sender"
   retention_in_days = 14
 }
 
@@ -273,7 +273,7 @@ resource "aws_iam_policy" "lambda_permissions" {
           "logs:PutLogEvents"
         ],
         Effect   = "Allow",
-        Resource = "arn:aws:logs:${local.region}:*:log-group:/aws/lambda/email/cold_email_sender:*"
+        Resource = "arn:aws:logs:${local.region}:*:log-group:/aws/lambda/cold_email_sender:*"
       }
     ]
   })

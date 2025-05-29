@@ -15,7 +15,11 @@ def lambda_handler(event, context):
             'Destination': {'ToAddresses': [row['email']]},
             'ReplacementTemplateData': json.dumps({
                 "first_name": row['first_name'],
-                "last_name": row['last_name']
+                "last_name": row['last_name'],
+                "subject": "TODO fix this static subject",
+                "body_content": "TODO fix this static body",
+                "cta_link": "https://www.sam.gov",
+                "cta_text": "TODO STATIC CTA TEXT"
             })
         })
 
