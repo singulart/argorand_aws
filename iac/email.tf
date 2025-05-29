@@ -218,6 +218,7 @@ resource "aws_lambda_function" "cold_email_sender" {
 
   environment {
     variables = {
+      CAMPAIGN_METADATA_S3   = aws_s3_bucket.argorand_email_campaigns.bucket
       SES_CONFIG_SET         = aws_sesv2_configuration_set.main.configuration_set_name 
       SES_SENDER             = "hello@argorand.io"
       SES_SENDER_NAME        = "Lex from Argorand"
@@ -269,6 +270,13 @@ resource "aws_iam_policy" "lambda_permissions" {
       },
       {
         Action = [
+          "s3:GetObject"
+        ],
+        Effect   = "Allow",
+        Resource = "${aws_s3_bucket.argorand_email_campaigns.arn}/*"
+      },
+      {
+        Action = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents"
@@ -300,12 +308,17 @@ resource "aws_sfn_state_machine" "email_campaign" {
       LoadRecipients = {
         Type = "Task",
         Resource = aws_lambda_function.email_loader.arn,
+        ResultPath = "$.loadRecipientsOutput",  # <-- Preserve original input and store result here
         Next = "SendEmails"
       },
       SendEmails = {
         Type = "Map",
-        ItemsPath = "$",
+        ItemsPath = "$.loadRecipientsOutput",
         MaxConcurrency = 10,
+        Parameters = {
+          "batch.$"         = "$$.Map.Item.Value",     # The current mini-batch item
+          "campaign_name.$" = "$.campaign_name"        # Bring in original campaign name
+        },
         Iterator = {
           StartAt = "SendBatch",
           States = {
