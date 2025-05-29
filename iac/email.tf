@@ -263,7 +263,8 @@ resource "aws_iam_policy" "lambda_permissions" {
           "arn:aws:ses:${local.region}:${data.aws_caller_identity.current.account_id}:configuration-set/argorand-ses-config-set*",
           "arn:aws:ses:${local.region}:${data.aws_caller_identity.current.account_id}:template/argorand-campaign*",
           "arn:aws:ses:${local.region}:${data.aws_caller_identity.current.account_id}:identity/hello@argorand.io",
-          "arn:aws:ses:${local.region}:${data.aws_caller_identity.current.account_id}:identity/argorand.io"
+          "arn:aws:ses:${local.region}:${data.aws_caller_identity.current.account_id}:identity/argorand.io",
+          "arn:aws:ses:${local.region}:${data.aws_caller_identity.current.account_id}:identity/analytics.argorand.io"
         ]
       },
       {
