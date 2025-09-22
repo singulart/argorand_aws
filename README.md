@@ -26,7 +26,7 @@ In `iac` folder:
 ```sh
 zip -r email_worker_lambda.zip ./email_worker_lambda
 
-zip -r email_worker_lambda.zip ./email_worker_lambda
+zip -r loader_lambda.zip loader_lambda
 
 ```
 
