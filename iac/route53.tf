@@ -3,6 +3,6 @@ resource "aws_route53_zone" "analytics" {
 }
 
 output "ns_records_to_add_in_lightsail" {
-  value = aws_route53_zone.analytics.name_servers
+  value       = aws_route53_zone.analytics.name_servers
   description = "Add these as NS records for analytics.argorand.io in your Lightsail DNS zone"
 }

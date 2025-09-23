@@ -5,8 +5,8 @@ provider "aws" {
 
   default_tags {
     tags = {
-      terraform     = "true"
-      application   = "Email Outreach"
+      terraform   = "true"
+      application = "Email Outreach"
     }
   }
 }
@@ -35,7 +35,7 @@ resource "aws_route53_record" "analytics_amazonses_verification_record" {
 }
 
 resource "aws_ses_domain_identity_verification" "analytics_verification" {
-  domain = aws_ses_domain_identity.analytics.domain
+  domain     = aws_ses_domain_identity.analytics.domain
   depends_on = [aws_route53_record.analytics_amazonses_verification_record]
 }
 
@@ -72,9 +72,9 @@ resource "aws_acm_certificate_validation" "cert" {
 }
 
 resource "aws_cloudfront_distribution" "ses_tracking" {
-  enabled             = true
-  is_ipv6_enabled     = true
-  comment             = "SES Link Tracking Distribution"
+  enabled         = true
+  is_ipv6_enabled = true
+  comment         = "SES Link Tracking Distribution"
 
   aliases = [aws_ses_domain_identity.analytics.domain]
 
@@ -110,8 +110,8 @@ resource "aws_cloudfront_distribution" "ses_tracking" {
   }
 
   viewer_certificate {
-    acm_certificate_arn = aws_acm_certificate.cert.arn
-    ssl_support_method  = "sni-only"
+    acm_certificate_arn      = aws_acm_certificate.cert.arn
+    ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }
 
@@ -219,13 +219,13 @@ resource "aws_sqs_queue_policy" "ses_events_queue_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "Allow-SNS-SendMessage"
-        Effect    = "Allow"
+        Sid    = "Allow-SNS-SendMessage"
+        Effect = "Allow"
         Principal = {
           Service = "sns.amazonaws.com"
         }
-        Action    = "sqs:SendMessage"
-        Resource  = aws_sqs_queue.ses_events_queue.arn
+        Action   = "sqs:SendMessage"
+        Resource = aws_sqs_queue.ses_events_queue.arn
         Condition = {
           ArnEquals = {
             "aws:SourceArn" = aws_sns_topic.ses_events.arn
@@ -238,8 +238,8 @@ resource "aws_sqs_queue_policy" "ses_events_queue_policy" {
 
 # Subscribe SQS queue to SNS topic
 resource "aws_sns_topic_subscription" "ses_events_subscription" {
-  topic_arn = aws_sns_topic.ses_events.arn
-  protocol  = "sqs"
-  endpoint  = aws_sqs_queue.ses_events_queue.arn
+  topic_arn            = aws_sns_topic.ses_events.arn
+  protocol             = "sqs"
+  endpoint             = aws_sqs_queue.ses_events_queue.arn
   raw_message_delivery = true
 }

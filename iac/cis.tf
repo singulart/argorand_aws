@@ -25,8 +25,8 @@ resource "aws_iam_role" "cloudtrail_role" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action    = "sts:AssumeRole"
-      Effect    = "Allow"
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
       Principal = {
         Service = "cloudtrail.amazonaws.com"
       }
@@ -42,8 +42,8 @@ resource "aws_iam_role_policy" "cloudtrail_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow"
-        Action   = [
+        Effect = "Allow"
+        Action = [
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
@@ -64,8 +64,8 @@ resource "aws_s3_bucket_policy" "cloudtrail" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "AWSCloudTrailAclCheck"
-        Effect    = "Allow"
+        Sid    = "AWSCloudTrailAclCheck"
+        Effect = "Allow"
         Principal = {
           Service = "cloudtrail.amazonaws.com"
         }
@@ -73,8 +73,8 @@ resource "aws_s3_bucket_policy" "cloudtrail" {
         Resource = aws_s3_bucket.cloudtrail.arn
       },
       {
-        Sid       = "AWSCloudTrailWrite"
-        Effect    = "Allow"
+        Sid    = "AWSCloudTrailWrite"
+        Effect = "Allow"
         Principal = {
           Service = "cloudtrail.amazonaws.com"
         }
@@ -90,6 +90,51 @@ resource "aws_s3_bucket_policy" "cloudtrail" {
   })
 }
 
+resource "aws_kms_key_policy" "cloudtrail" {
+  key_id = aws_kms_key.cloudtrail.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Id      = "key-default-1"
+    Statement = [
+      {
+        Sid       = "AllowRootAccount"
+        Effect    = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid       = "AllowCloudTrail"
+        Effect    = "Allow"
+        Principal = {
+          Service = "cloudtrail.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:GenerateDataKey*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+data "aws_region" "current" {}
+
+resource "aws_kms_key" "cloudtrail" {
+  description             = "KMS CMK for CloudTrail logs"
+  enable_key_rotation     = true
+  deletion_window_in_days = 30
+}
+
+resource "aws_kms_alias" "cloudtrail" {
+  name          = "alias/cis-cloudtrail-logs"
+  target_key_id = aws_kms_key.cloudtrail.key_id
+}
+
 resource "aws_cloudtrail" "cis" {
   name                          = "cis-trail"
   s3_bucket_name                = aws_s3_bucket.cloudtrail.id
@@ -98,7 +143,10 @@ resource "aws_cloudtrail" "cis" {
   enable_logging                = true
   cloud_watch_logs_group_arn    = "${aws_cloudwatch_log_group.trail.arn}:*"
   cloud_watch_logs_role_arn     = aws_iam_role.cloudtrail_role.arn
+  kms_key_id                    = aws_kms_alias.cloudtrail.arn
+  enable_log_file_validation    = true
 }
+
 
 #####################################
 # Metric Filter for Root User Usage
@@ -247,7 +295,7 @@ resource "aws_cloudwatch_log_metric_filter" "route_table_changes" {
   log_group_name = aws_cloudwatch_log_group.trail.name
 
   # Matches Create, Replace, Associate, Disassociate, Delete route table/route events
-  pattern = "{ ($.eventName = CreateRoute) || ($.eventName = CreateRouteTable) || ($.eventName = ReplaceRoute) || ($.eventName = ReplaceRouteTableAssociation) || ($.eventName = DeleteRouteTable) || ($.eventName = DeleteRoute) || ($.eventName = DisassociateRouteTable) || ($.eventName = AssociateRouteTable) }"
+  pattern = "{ ($.eventSource=ec2.amazonaws.com) && (($.eventName = CreateRoute) || ($.eventName = CreateRouteTable) || ($.eventName = ReplaceRoute) || ($.eventName = ReplaceRouteTableAssociation) || ($.eventName = DeleteRouteTable) || ($.eventName = DeleteRoute) || ($.eventName = DisassociateRouteTable)) }"
 
   metric_transformation {
     name      = "RouteTableChangeCount"
@@ -317,7 +365,7 @@ resource "aws_cloudwatch_log_metric_filter" "iam_policy_changes" {
   log_group_name = aws_cloudwatch_log_group.trail.name
 
   # Matches IAM policy changes: Attach, Detach, Create, Delete, Update
-  pattern = "{ ($.eventName = AttachRolePolicy) || ($.eventName = DetachRolePolicy) || ($.eventName = AttachUserPolicy) || ($.eventName = DetachUserPolicy) || ($.eventName = AttachGroupPolicy) || ($.eventName = DetachGroupPolicy) || ($.eventName = PutRolePolicy) || ($.eventName = DeleteRolePolicy) || ($.eventName = PutUserPolicy) || ($.eventName = DeleteUserPolicy) || ($.eventName = PutGroupPolicy) || ($.eventName = DeleteGroupPolicy) || ($.eventName = CreatePolicy) || ($.eventName = DeletePolicy) || ($.eventName = CreatePolicyVersion) || ($.eventName = DeletePolicyVersion) || ($.eventName = SetDefaultPolicyVersion) }"
+  pattern = "{($.eventSource=iam.amazonaws.com) && (($.eventName=DeleteGroupPolicy) || ($.eventName=DeleteRolePolicy) || ($.eventName=DeleteUserPolicy) || ($.eventName=PutGroupPolicy) || ($.eventName=PutRolePolicy) || ($.eventName=PutUserPolicy) || ($.eventName=CreatePolicy) || ($.eventName=DeletePolicy) || ($.eventName=CreatePolicyVersion) || ($.eventName=DeletePolicyVersion) || ($.eventName=AttachRolePolicy) || ($.eventName=DetachRolePolicy) || ($.eventName=AttachUserPolicy) || ($.eventName=DetachUserPolicy) || ($.eventName=AttachGroupPolicy) || ($.eventName=DetachGroupPolicy))}"
 
   metric_transformation {
     name      = "IAMPolicyChangeCount"

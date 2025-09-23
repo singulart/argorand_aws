@@ -1,5 +1,5 @@
 locals {
-  region              = "us-east-1"
+  region = "us-east-1"
 }
 
 resource "aws_ses_template" "argorand_reusable_campaign_template" {
@@ -83,14 +83,14 @@ resource "aws_s3_bucket_lifecycle_configuration" "argorand_email_campaigns_lifec
     status = "Enabled"
 
     transition {
-      days          = 30 # Transition objects to another storage class after 30 days
+      days          = 30            # Transition objects to another storage class after 30 days
       storage_class = "STANDARD_IA" # Change to desired storage class (e.g., STANDARD_IA, GLACIER, etc.)
     }
 
     expiration {
       days = 365 # Expire (delete) objects after 365 days
     }
-  }  
+  }
 }
 
 resource "aws_s3_bucket_versioning" "argorand_email_campaigns_versioning" {
@@ -121,15 +121,15 @@ resource "random_string" "rnd" {
 ## Loader Lambda
 
 resource "aws_lambda_function" "email_loader" {
-  function_name = "email_loader"
-  runtime       = "python3.13"
-  handler       = "loader_lambda.lambda_function.lambda_handler"
-  filename      = "loader_lambda.zip"
-  role          = aws_iam_role.email_loader_lambda_execution_role.arn
-  architectures = [ "arm64" ]
-  timeout       = 120
-  memory_size   = 512
-  publish       = true
+  function_name    = "email_loader"
+  runtime          = "python3.13"
+  handler          = "loader_lambda.lambda_function.lambda_handler"
+  filename         = "loader_lambda.zip"
+  role             = aws_iam_role.email_loader_lambda_execution_role.arn
+  architectures    = ["arm64"]
+  timeout          = 120
+  memory_size      = 512
+  publish          = true
   source_code_hash = filebase64sha256("loader_lambda.zip")
 
 
@@ -139,7 +139,7 @@ resource "aws_lambda_function" "email_loader" {
 
   environment {
     variables = {
-      S3_BUCKET              = aws_s3_bucket.argorand_email_campaigns.bucket
+      S3_BUCKET = aws_s3_bucket.argorand_email_campaigns.bucket
     }
   }
 }
@@ -172,7 +172,7 @@ resource "aws_iam_policy" "email_loader_lambda_permissions" {
 
   policy = jsonencode({
     Version = "2012-10-17",
-    Statement : [    
+    Statement : [
       {
         Action = [
           "s3:GetObject"
@@ -201,15 +201,15 @@ resource "aws_iam_role_policy_attachment" "email_loader_policy_attachment" {
 ## Sender Lambda
 
 resource "aws_lambda_function" "cold_email_sender" {
-  function_name = "cold_email_sender"
-  runtime       = "python3.13"
-  handler       = "email_worker_lambda.lambda_function.lambda_handler"
-  filename      = "email_worker_lambda.zip"
-  role          = aws_iam_role.lambda_execution_role.arn
-  architectures = [ "arm64" ]
-  timeout       = 120
-  memory_size   = 512
-  publish       = true
+  function_name    = "cold_email_sender"
+  runtime          = "python3.13"
+  handler          = "email_worker_lambda.lambda_function.lambda_handler"
+  filename         = "email_worker_lambda.zip"
+  role             = aws_iam_role.lambda_execution_role.arn
+  architectures    = ["arm64"]
+  timeout          = 120
+  memory_size      = 512
+  publish          = true
   source_code_hash = filebase64sha256("email_worker_lambda.zip")
 
   tracing_config {
@@ -218,12 +218,12 @@ resource "aws_lambda_function" "cold_email_sender" {
 
   environment {
     variables = {
-      CAMPAIGN_METADATA_S3   = aws_s3_bucket.argorand_email_campaigns.bucket
-      SES_CONFIG_SET         = aws_sesv2_configuration_set.main.configuration_set_name 
-      SES_SENDER             = "hello@argorand.io"
-      SES_SENDER_NAME        = "Lex from Argorand"
-      SES_TEMPLATE           = aws_ses_template.argorand_reusable_campaign_template.name
-      RANDOM_VAR             = random_string.rnd.result
+      CAMPAIGN_METADATA_S3 = aws_s3_bucket.argorand_email_campaigns.bucket
+      SES_CONFIG_SET       = aws_sesv2_configuration_set.main.configuration_set_name
+      SES_SENDER           = "hello@argorand.io"
+      SES_SENDER_NAME      = "Lex from Argorand"
+      SES_TEMPLATE         = aws_ses_template.argorand_reusable_campaign_template.name
+      RANDOM_VAR           = random_string.rnd.result
     }
   }
 }
@@ -256,10 +256,10 @@ resource "aws_iam_policy" "lambda_permissions" {
 
   policy = jsonencode({
     Version = "2012-10-17",
-    Statement : [    
+    Statement : [
       {
-        Action   = "ses:SendBulkTemplatedEmail",
-        Effect   = "Allow",
+        Action = "ses:SendBulkTemplatedEmail",
+        Effect = "Allow",
         Resource = [
           "arn:aws:ses:${local.region}:${data.aws_caller_identity.current.account_id}:configuration-set/argorand-ses-config-set*",
           "arn:aws:ses:${local.region}:${data.aws_caller_identity.current.account_id}:template/argorand-campaign*",
@@ -306,26 +306,26 @@ resource "aws_sfn_state_machine" "email_campaign" {
     StartAt = "LoadRecipients",
     States = {
       LoadRecipients = {
-        Type = "Task",
-        Resource = aws_lambda_function.email_loader.arn,
-        ResultPath = "$.loadRecipientsOutput",  # <-- Preserve original input and store result here
-        Next = "SendEmails"
+        Type       = "Task",
+        Resource   = aws_lambda_function.email_loader.arn,
+        ResultPath = "$.loadRecipientsOutput", # <-- Preserve original input and store result here
+        Next       = "SendEmails"
       },
       SendEmails = {
-        Type = "Map",
-        ItemsPath = "$.loadRecipientsOutput",
+        Type           = "Map",
+        ItemsPath      = "$.loadRecipientsOutput",
         MaxConcurrency = 10,
         Parameters = {
-          "batch.$"         = "$$.Map.Item.Value",     # The current mini-batch item
-          "campaign_name.$" = "$.campaign_name"        # Bring in original campaign name
+          "batch.$"         = "$$.Map.Item.Value", # The current mini-batch item
+          "campaign_name.$" = "$.campaign_name"    # Bring in original campaign name
         },
         Iterator = {
           StartAt = "SendBatch",
           States = {
             SendBatch = {
-              Type = "Task",
+              Type     = "Task",
               Resource = aws_lambda_function.cold_email_sender.arn,
-              End = true
+              End      = true
             }
           }
         },
@@ -341,9 +341,9 @@ resource "aws_iam_role" "stepfn_role" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Action = "sts:AssumeRole",
+      Action    = "sts:AssumeRole",
       Principal = { Service = "states.amazonaws.com" },
-      Effect = "Allow"
+      Effect    = "Allow"
     }]
   })
 }
