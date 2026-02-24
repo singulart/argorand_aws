@@ -593,3 +593,21 @@ resource "aws_iam_role_policy_attachment" "aws_support_role_attach" {
   role       = aws_iam_role.aws_support_role.name
   policy_arn = "arn:aws:iam::aws:policy/AWSSupportAccess"
 }
+
+#####################################
+# Logging target bucket for access logs
+#####################################
+resource "aws_s3_bucket" "cloudtrail_access_logs" {
+  bucket = "cis-cloudtrail-access-logs-${data.aws_caller_identity.current.account_id}"
+
+  tags = {
+    Purpose = "AccessLogsForCloudTrailBucket"
+  }
+}
+
+resource "aws_s3_bucket_logging" "cloudtrail" {
+  bucket = aws_s3_bucket.cloudtrail.id
+
+  target_bucket = aws_s3_bucket.cloudtrail_access_logs.id
+  target_prefix = "cloudtrail-logs/"
+}
