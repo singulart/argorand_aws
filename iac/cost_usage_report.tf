@@ -102,7 +102,9 @@ resource "aws_bcmdataexports_export" "cur_per_service" {
         identity_time_interval,
         line_item_product_code,
         line_item_unblended_cost,
-        line_item_usage_start_date,
+        line_item_usage_type,
+        line_item_usage_amount,
+        pricing_unit,
         line_item_net_unblended_cost,
         resource_tags,
         cost_category
@@ -110,6 +112,7 @@ resource "aws_bcmdataexports_export" "cur_per_service" {
       EOF
       table_configurations = {
         COST_AND_USAGE_REPORT = {
+          BILLING_VIEW_ARN                      = "arn:aws:billing::${data.aws_caller_identity.current.account_id}:billingview/primary",
           TIME_GRANULARITY                      = "DAILY",
           INCLUDE_RESOURCES                     = "FALSE",
           INCLUDE_MANUAL_DISCOUNT_COMPATIBILITY = "FALSE",
@@ -120,7 +123,7 @@ resource "aws_bcmdataexports_export" "cur_per_service" {
     destination_configurations {
       s3_destination {
         s3_bucket = aws_s3_bucket.cost_usage_reports.id
-        s3_prefix = "/"
+        s3_prefix = "cost-usage-reports/"
         s3_region = data.aws_region.current.region
         s3_output_configurations {
           overwrite   = "CREATE_NEW_REPORT"
