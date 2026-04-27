@@ -1,5 +1,16 @@
 # TODO ENABLE commented-out resources WHEN NEEDED TO PRODUCE REPORTS for APN FTR
 
+provider "aws" {
+  alias  = "global_compliance"
+  region = "us-east-1"
+
+  default_tags {
+    tags = {
+      terraform = "true"
+      scope     = "global_compliance"
+    }
+  }
+}
 
 # #####################################
 # # SNS Topic for CIS Alerts
@@ -57,6 +68,7 @@
 # }
 
 resource "aws_s3_bucket" "cloudtrail" {
+  provider = aws.global_compliance
   bucket = "cis-cloudtrail-logs-${data.aws_caller_identity.current.account_id}"
 }
 
@@ -128,6 +140,7 @@ resource "aws_kms_key_policy" "cloudtrail" {
 data "aws_region" "current" {}
 
 resource "aws_kms_key" "cloudtrail" {
+  provider = aws.global_compliance
   description             = "KMS CMK for CloudTrail logs"
   enable_key_rotation     = true
   deletion_window_in_days = 30
@@ -139,6 +152,7 @@ resource "aws_kms_alias" "cloudtrail" {
 }
 
 # resource "aws_cloudtrail" "cis" {
+#   provider = aws.global_compliance
 #   name                          = "cis-trail"
 #   s3_bucket_name                = aws_s3_bucket.cloudtrail.id
 #   include_global_service_events = true
@@ -171,6 +185,7 @@ resource "aws_kms_alias" "cloudtrail" {
 # # Alarm for Root User Usage
 # #####################################
 # resource "aws_cloudwatch_metric_alarm" "root_user_usage_alarm" {
+#   provider = aws.global_compliance
 #   alarm_name          = "RootUserUsageAlarm"
 #   alarm_description   = "CIS Benchmark: Detect usage of the root user"
 #   comparison_operator = "GreaterThanOrEqualToThreshold"
@@ -206,6 +221,7 @@ resource "aws_kms_alias" "cloudtrail" {
 # # Alarm for Security Group Changes
 # #####################################
 # resource "aws_cloudwatch_metric_alarm" "security_group_changes_alarm" {
+#   provider = aws.global_compliance
 #   alarm_name          = "SecurityGroupChangesAlarm"
 #   alarm_description   = "CIS Benchmark: Detect security group changes"
 #   comparison_operator = "GreaterThanOrEqualToThreshold"
@@ -241,6 +257,7 @@ resource "aws_kms_alias" "cloudtrail" {
 # # Alarm for NACL Changes
 # #####################################
 # resource "aws_cloudwatch_metric_alarm" "nacl_changes_alarm" {
+#   provider = aws.global_compliance
 #   alarm_name          = "NACLChangesAlarm"
 #   alarm_description   = "CIS Benchmark: Detect changes to Network ACLs"
 #   comparison_operator = "GreaterThanOrEqualToThreshold"
@@ -276,6 +293,7 @@ resource "aws_kms_alias" "cloudtrail" {
 # # Alarm for Network Gateway Changes
 # #####################################
 # resource "aws_cloudwatch_metric_alarm" "network_gateway_changes_alarm" {
+#   provider = aws.global_compliance
 #   alarm_name          = "NetworkGatewayChangesAlarm"
 #   alarm_description   = "CIS Benchmark: Detect changes to network gateways"
 #   comparison_operator = "GreaterThanOrEqualToThreshold"
@@ -311,6 +329,7 @@ resource "aws_kms_alias" "cloudtrail" {
 # # Alarm for Route Table Changes
 # #####################################
 # resource "aws_cloudwatch_metric_alarm" "route_table_changes_alarm" {
+#   provider = aws.global_compliance
 #   alarm_name          = "RouteTableChangesAlarm"
 #   alarm_description   = "CIS Benchmark: Detect changes to route tables"
 #   comparison_operator = "GreaterThanOrEqualToThreshold"
@@ -346,6 +365,7 @@ resource "aws_kms_alias" "cloudtrail" {
 # # Alarm for VPC Changes
 # #####################################
 # resource "aws_cloudwatch_metric_alarm" "vpc_changes_alarm" {
+#   provider            = aws.global_compliance
 #   alarm_name          = "VPCChangesAlarm"
 #   alarm_description   = "CIS Benchmark: Detect changes to VPCs"
 #   comparison_operator = "GreaterThanOrEqualToThreshold"
@@ -381,6 +401,7 @@ resource "aws_kms_alias" "cloudtrail" {
 # # Alarm for IAM Policy Changes
 # #####################################
 # resource "aws_cloudwatch_metric_alarm" "iam_policy_changes_alarm" {
+#   provider            = aws.global_compliance
 #   alarm_name          = "IAMPolicyChangesAlarm"
 #   alarm_description   = "CIS Benchmark: Detect changes to IAM policies"
 #   comparison_operator = "GreaterThanOrEqualToThreshold"
@@ -416,6 +437,7 @@ resource "aws_kms_alias" "cloudtrail" {
 # # Alarm for CloudTrail Configuration Changes
 # #####################################
 # resource "aws_cloudwatch_metric_alarm" "cloudtrail_config_changes_alarm" {
+#   provider            = aws.global_compliance
 #   alarm_name          = "CloudTrailConfigChangesAlarm"
 #   alarm_description   = "CIS Benchmark: Detect CloudTrail configuration changes"
 #   comparison_operator = "GreaterThanOrEqualToThreshold"
@@ -451,6 +473,7 @@ resource "aws_kms_alias" "cloudtrail" {
 # # Alarm for Console Authentication Failures
 # #####################################
 # resource "aws_cloudwatch_metric_alarm" "console_auth_failures_alarm" {
+#   provider            = aws.global_compliance
 #   alarm_name          = "ConsoleAuthFailuresAlarm"
 #   alarm_description   = "CIS Benchmark: Detect AWS Management Console authentication failures"
 #   comparison_operator = "GreaterThanOrEqualToThreshold"
@@ -486,6 +509,7 @@ resource "aws_kms_alias" "cloudtrail" {
 # # Alarm for CMK Disable/Delete Events
 # #####################################
 # resource "aws_cloudwatch_metric_alarm" "cmk_disable_or_delete_alarm" {
+#   provider            = aws.global_compliance
 #   alarm_name          = "CMKDisableOrDeleteAlarm"
 #   alarm_description   = "CIS Benchmark: Detect disabling or scheduled deletion of customer-managed CMKs"
 #   comparison_operator = "GreaterThanOrEqualToThreshold"
@@ -521,6 +545,7 @@ resource "aws_kms_alias" "cloudtrail" {
 # # Alarm for S3 Bucket Policy Changes
 # #####################################
 # resource "aws_cloudwatch_metric_alarm" "s3_bucket_policy_changes_alarm" {
+#   provider            = aws.global_compliance
 #   alarm_name          = "S3BucketPolicyChangesAlarm"
 #   alarm_description   = "CIS Benchmark: Detect S3 bucket policy or ACL changes"
 #   comparison_operator = "GreaterThanOrEqualToThreshold"
@@ -556,6 +581,7 @@ resource "aws_kms_alias" "cloudtrail" {
 # # Alarm for AWS Config Configuration Changes
 # #####################################
 # resource "aws_cloudwatch_metric_alarm" "config_changes_alarm" {
+#   provider            = aws.global_compliance
 #   alarm_name          = "ConfigConfigurationChangesAlarm"
 #   alarm_description   = "CIS Benchmark: Detect changes to AWS Config configuration"
 #   comparison_operator = "GreaterThanOrEqualToThreshold"
@@ -574,6 +600,7 @@ resource "aws_kms_alias" "cloudtrail" {
 # # IAM Role for AWS Support
 # #####################################
 # resource "aws_iam_role" "aws_support_role" {
+#   provider            = aws.global_compliance
 #   name = "AWSIncidentsSupportRole"
 
 #   assume_role_policy = jsonencode({
@@ -601,6 +628,7 @@ resource "aws_kms_alias" "cloudtrail" {
 # # Logging target bucket for access logs
 # #####################################
 # resource "aws_s3_bucket" "cloudtrail_access_logs" {
+#   provider            = aws.global_compliance
 #   bucket = "cis-cloudtrail-access-logs-${data.aws_caller_identity.current.account_id}"
 
 #   tags = {
