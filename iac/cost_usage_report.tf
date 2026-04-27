@@ -47,7 +47,10 @@ resource "aws_s3_bucket_policy" "cost_usage_reports" {
         Sid    = "AllowBillingServiceReadBucketMetadata"
         Effect = "Allow"
         Principal = {
-          Service = "billingreports.amazonaws.com"
+          Service = [
+            "bcm-data-exports.amazonaws.com",
+            "billingreports.amazonaws.com"
+          ]
         }
         Action = [
           "s3:GetBucketAcl",
@@ -55,9 +58,12 @@ resource "aws_s3_bucket_policy" "cost_usage_reports" {
         ]
         Resource = aws_s3_bucket.cost_usage_reports.arn
         Condition = {
-          StringEquals = {
+          StringLike = {
             "aws:SourceAccount" = data.aws_caller_identity.current.account_id
-            "aws:SourceArn" = "arn:aws:cur:us-east-1:${data.aws_caller_identity.current.account_id}:definition/*"
+            "aws:SourceArn" = [
+              "arn:aws:bcm-data-exports:us-east-1:${data.aws_caller_identity.current.account_id}:export/*",
+              "arn:aws:cur:us-east-1:${data.aws_caller_identity.current.account_id}:definition/*"
+            ]
           }
         }
       },
@@ -65,17 +71,68 @@ resource "aws_s3_bucket_policy" "cost_usage_reports" {
         Sid    = "AllowBillingServiceWriteReports"
         Effect = "Allow"
         Principal = {
-          Service = "billingreports.amazonaws.com"
+          Service = [
+            "bcm-data-exports.amazonaws.com",
+            "billingreports.amazonaws.com"
+          ]        
         }
         Action   = "s3:PutObject"
         Resource = "${aws_s3_bucket.cost_usage_reports.arn}/*"
         Condition = {
-          StringEquals = {
+          StringLike = {
             "aws:SourceAccount" = data.aws_caller_identity.current.account_id
-            "aws:SourceArn" = "arn:aws:cur:us-east-1:${data.aws_caller_identity.current.account_id}:definition/*"
+            "aws:SourceArn" = [
+              "arn:aws:bcm-data-exports:us-east-1:${data.aws_caller_identity.current.account_id}:export/*",
+              "arn:aws:cur:us-east-1:${data.aws_caller_identity.current.account_id}:definition/*"
+            ]          
           }
         }
       }
     ]
   })
+}
+
+resource "aws_bcmdataexports_export" "cur_per_service" {
+  export {
+    name = "aws-billing-report-per-service"
+    data_query {
+      query_statement = <<EOF
+      SELECT
+        identity_line_item_id,
+        identity_time_interval,
+        line_item_product_code,
+        line_item_unblended_cost,
+        line_item_usage_start_date,
+        line_item_net_unblended_cost,
+        resource_tags,
+        cost_category
+      FROM COST_AND_USAGE_REPORT
+      EOF
+      table_configurations = {
+        COST_AND_USAGE_REPORT = {
+          TIME_GRANULARITY                      = "DAILY",
+          INCLUDE_RESOURCES                     = "FALSE",
+          INCLUDE_MANUAL_DISCOUNT_COMPATIBILITY = "FALSE",
+          INCLUDE_SPLIT_COST_ALLOCATION_DATA    = "FALSE",
+        }
+      }
+    }
+    destination_configurations {
+      s3_destination {
+        s3_bucket = aws_s3_bucket.cost_usage_reports.id
+        s3_prefix = "/"
+        s3_region = data.aws_region.current.region
+        s3_output_configurations {
+          overwrite   = "CREATE_NEW_REPORT"
+          format      = "PARQUET"
+          compression = "PARQUET"
+          output_type = "CUSTOM"
+        }
+      }
+    }
+
+    refresh_cadence {
+      frequency = "SYNCHRONOUS"
+    }
+  }
 }
