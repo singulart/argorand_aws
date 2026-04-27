@@ -93,6 +93,7 @@ resource "aws_s3_bucket_policy" "cost_usage_reports" {
 }
 
 resource "aws_bcmdataexports_export" "cur_per_service" {
+  provider = aws.global_cost
   export {
     name = "aws-billing-report-per-service"
     data_query {
