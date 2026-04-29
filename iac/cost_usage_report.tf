@@ -124,7 +124,7 @@ resource "aws_bcmdataexports_export" "cur_per_service" {
     destination_configurations {
       s3_destination {
         s3_bucket = aws_s3_bucket.cost_usage_reports.id
-        s3_prefix = "cost-usage-reports/"
+        s3_prefix = "cost-usage-reports"
         s3_region = data.aws_region.current.region
         s3_output_configurations {
           overwrite   = "CREATE_NEW_REPORT"
