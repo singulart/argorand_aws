@@ -22,14 +22,17 @@ resource "aws_glue_catalog_table" "cost_usage_reports" {
   table_type    = "EXTERNAL_TABLE"
 
   parameters = {
-    EXTERNAL                                  = "TRUE"
-    classification                            = "parquet"
-    "projection.enabled"                      = "true"
-    "projection._year.type"                   = "integer"
-    "projection._year.range"                  = "2026,2040"
-    "projection._month.type"                  = "integer"
-    "projection._month.range"                 = "1,12"
-    "storage.location.template"               = "s3://${aws_s3_bucket.cost_usage_reports.bucket}/cost-usage-reports//aws-billing-report-per-service/data/BILLING_PERIOD=$${_year}-$${_month}/"
+    EXTERNAL                              = "TRUE"
+    classification                        = "parquet"
+    "projection.enabled"                  = "true"
+    "projection._year.type"               = "integer"
+    "projection._year.range"              = "2026,2040"
+    "projection._month.type"              = "integer"
+    "projection._month.range"             = "1,12"
+    "projection._month.digits"            = "2"
+    "hive.mapred.supports.subdirectories" = "true"
+    "mapred.input.dir.recursive"          = "true"
+    "storage.location.template"           = "s3://${aws_s3_bucket.cost_usage_reports.bucket}/cost-usage-reports/aws-billing-report-per-service/data/BILLING_PERIOD=$${_year}-$${_month}/"
   }
 
   partition_keys {
@@ -42,7 +45,7 @@ resource "aws_glue_catalog_table" "cost_usage_reports" {
   }
 
   storage_descriptor {
-    location      = "s3://${aws_s3_bucket.cost_usage_reports.bucket}/cost-usage-reports/"
+    location      = "s3://${aws_s3_bucket.cost_usage_reports.bucket}/cost-usage-reports/aws-billing-report-per-service/data/"
     input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
     output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
 
@@ -52,11 +55,6 @@ resource "aws_glue_catalog_table" "cost_usage_reports" {
 
     columns {
       name = "identity_line_item_id"
-      type = "string"
-    }
-
-    columns {
-      name = "identity_time_interval"
       type = "string"
     }
 
@@ -90,30 +88,21 @@ resource "aws_glue_catalog_table" "cost_usage_reports" {
       type = "double"
     }
 
-    columns {
-      name = "resource_tags"
-      type = "string"
-    }
-
-    columns {
-      name = "cost_category"
-      type = "string"
-    }
   }
 }
 
-resource "aws_athena_named_query" "spend_by_service_month" {
-  name      = "cur_spend_by_service_month"
-  database  = aws_athena_database.cost_usage_reports.name
-  workgroup = aws_athena_workgroup.cost_usage_reports.name
+# resource "aws_athena_named_query" "spend_by_service_month" {
+#   name      = "cur_spend_by_service_month"
+#   database  = aws_athena_database.cost_usage_reports.name
+#   workgroup = aws_athena_workgroup.cost_usage_reports.name
 
-  query = <<-SQL
-    SELECT
-      line_item_product_code AS service,
-      ROUND(SUM(COALESCE(line_item_net_unblended_cost, line_item_unblended_cost)), 2) AS spend_usd
-    FROM cur_per_service
-    WHERE billing_period = '2026-04'
-    GROUP BY 1
-    ORDER BY 2 DESC;
-  SQL
-}
+#   query = <<-SQL
+#     SELECT
+#       line_item_product_code AS service,
+#       ROUND(SUM(COALESCE(line_item_net_unblended_cost, line_item_unblended_cost)), 2) AS spend_usd
+#     FROM cur_per_service
+#     WHERE billing_period = '2026-04'
+#     GROUP BY 1
+#     ORDER BY 2 DESC;
+#   SQL
+# }
