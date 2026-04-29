@@ -74,6 +74,11 @@ resource "aws_glue_catalog_table" "cost_usage_reports" {
     }
 
     columns {
+      name = "line_item_line_item_type"
+      type = "string"
+    }
+
+    columns {
       name = "line_item_usage_amount"
       type = "double"
     }

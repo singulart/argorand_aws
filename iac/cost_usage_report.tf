@@ -105,6 +105,7 @@ resource "aws_bcmdataexports_export" "cur_per_service" {
         line_item_unblended_cost,
         line_item_usage_type,
         line_item_usage_amount,
+        line_item_line_item_type,
         pricing_unit,
         line_item_net_unblended_cost,
         resource_tags,
