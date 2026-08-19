@@ -13,17 +13,11 @@ resource "aws_ses_template" "argorand_reusable_campaign_template" {
     <title>{{subject}}</title>
   </head>
   <body style="font-family: Arial, sans-serif; color: #222222; background-color: #ffffff; padding: 20px;">
-    <p style="font-size: 16px;">Hello {{first_name}},</p>
+    <p style="font-size: 16px;">Hi {{first_name}},</p>
 
-    <p style="font-size: 16px;">
-      {{body_content}}
-    </p>
-
-    <p style="margin: 30px 0;">
-      <a href="{{cta_link}}" style="padding: 12px 20px; background-color: #0073e6; color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 4px;">
-        {{cta_text}}
-      </a>
-    </p>
+    <div style="font-size: 16px;">
+      {{{body_content}}}
+    </div>
 
     <!-- Signature block -->
     <div dir="ltr">
@@ -35,7 +29,7 @@ resource "aws_ses_template" "argorand_reusable_campaign_template" {
       <p style="margin:0;">
         <font color="#7f7f7f" face="Franklin Gothic Book, sans-serif" size="4">Chief Executive Officer</font>
       </p>
-      <p><img src="https://argorand.io/wp-content/uploads/2024/12/argorand-seo.png" alt="Argorand Logo" style="max-width: 200px;"></p>
+      <p><img src="https://argorand.io/wp-content/uploads/2026/08/logo-signature.png" alt="Argorand Logo" style="max-width: 200px;"></p>
       <p style="color:#444444;font-size:16px;">
         <a href="https://www.argorand.io" style="color:#1155cc;">https://www.argorand.io</a><br>
         <strong>Change the way you AWS</strong><br>
@@ -49,7 +43,7 @@ resource "aws_ses_template" "argorand_reusable_campaign_template" {
 EOF
 
   subject = "{{subject}}"
-  text    = "Hello {{first_name}},\n\n{{body_content}}\n\nVisit: {{cta_link}}"
+  text    = "{{body_content}}"
 }
 
 ## S3 bucket 
@@ -220,8 +214,8 @@ resource "aws_lambda_function" "cold_email_sender" {
     variables = {
       CAMPAIGN_METADATA_S3 = aws_s3_bucket.argorand_email_campaigns.bucket
       SES_CONFIG_SET       = aws_sesv2_configuration_set.main.configuration_set_name
-      SES_SENDER           = "hello@argorand.io"
-      SES_SENDER_NAME      = "Lex from Argorand"
+      SES_SENDER           = "lex@argorand.io"
+      SES_SENDER_NAME      = "Lex Buistov"
       SES_TEMPLATE         = aws_ses_template.argorand_reusable_campaign_template.name
       RANDOM_VAR           = random_string.rnd.result
     }
@@ -270,10 +264,14 @@ resource "aws_iam_policy" "lambda_permissions" {
       },
       {
         Action = [
-          "s3:GetObject"
+          "s3:GetObject",
+          "s3:ListBucket"
         ],
         Effect   = "Allow",
-        Resource = "${aws_s3_bucket.argorand_email_campaigns.arn}/*"
+        Resource = [
+          "${aws_s3_bucket.argorand_email_campaigns.arn}/*", 
+          "${aws_s3_bucket.argorand_email_campaigns.arn}"
+        ]
       },
       {
         Action = [

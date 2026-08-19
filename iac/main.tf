@@ -198,7 +198,7 @@ resource "aws_sesv2_configuration_set_event_destination" "sns_destination" {
 
   event_destination {
     enabled              = true
-    matching_event_types = ["SEND", "REJECT", "BOUNCE", "COMPLAINT", "DELIVERY", "OPEN", "CLICK"]
+    matching_event_types = ["SEND", "RENDERING_FAILURE", "REJECT", "BOUNCE", "COMPLAINT", "DELIVERY", "OPEN", "CLICK"]
 
     sns_destination {
       topic_arn = aws_sns_topic.ses_events.arn
